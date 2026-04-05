@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8080';
+const API_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ?? 'https://personalhealthreccomendation.onrender.com';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
