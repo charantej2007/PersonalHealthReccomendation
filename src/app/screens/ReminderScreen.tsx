@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Dumbbell, Apple, Bell as BellIcon, CircleAlert } from 'lucide-react';
+import { Dumbbell, Apple, Bell as BellIcon, CircleAlert, Sparkles } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import {
   getNotifications,
@@ -21,20 +21,33 @@ export function ReminderScreen() {
       navigate('/login');
       return;
     }
+    const activeUserId = userId;
+    let isMounted = true;
 
     async function loadNotifications() {
       try {
-        setLoading(true);
-        const data = await getNotifications(userId);
+        if (isMounted) setLoading(true);
+        const data = await getNotifications(activeUserId);
+        if (!isMounted) return;
         setNotifications(data);
       } catch (err) {
+        if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Could not load notifications.');
       } finally {
+        if (!isMounted) return;
         setLoading(false);
       }
     }
 
-    loadNotifications();
+    void loadNotifications();
+    const interval = window.setInterval(() => {
+      void loadNotifications();
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
   }, [navigate]);
 
   const unreadCount = useMemo(
@@ -56,6 +69,7 @@ export function ReminderScreen() {
   const iconByKind = {
     exercise: Dumbbell,
     food: Apple,
+    yoga: Sparkles,
     default: BellIcon,
   } as const;
 
@@ -81,21 +95,35 @@ export function ReminderScreen() {
             </div>
             <div>
               <p className="text-white font-semibold text-lg">{notifications.length} Notifications</p>
-              <p className="text-white/80 text-sm">Exercise and food reminders from your plan</p>
+              <p className="text-white/80 text-sm">Diet, exercise and yoga reminders from your plan</p>
             </div>
           </div>
         </div>
 
         {!loading && notifications.length === 0 && (
           <div className="bg-yellow-50 text-yellow-700 text-sm rounded-xl p-4">
-            No notifications yet. Update your BP and sugar to generate daily food/exercise reminders.
+            No notifications yet. Update your BP and sugar to generate daily diet/exercise/yoga reminders.
           </div>
         )}
 
         {notifications.map((notification) => {
           const kind = notification.metadata?.kind;
-          const Icon = kind === 'exercise' ? iconByKind.exercise : kind === 'food' ? iconByKind.food : iconByKind.default;
-          const tint = kind === 'exercise' ? '#5B9BD5' : kind === 'food' ? '#4DB8AC' : '#F59E75';
+          const Icon =
+            kind === 'exercise'
+              ? iconByKind.exercise
+              : kind === 'food'
+              ? iconByKind.food
+              : kind === 'yoga'
+              ? iconByKind.yoga
+              : iconByKind.default;
+          const tint =
+            kind === 'exercise'
+              ? '#5B9BD5'
+              : kind === 'food'
+              ? '#4DB8AC'
+              : kind === 'yoga'
+              ? '#9B72CB'
+              : '#F59E75';
 
           return (
             <div key={notification.id} className="bg-white rounded-3xl p-5 shadow-sm">

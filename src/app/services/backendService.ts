@@ -70,7 +70,7 @@ export type AppNotification = {
   read?: boolean;
   dueAt?: string;
   metadata?: {
-    kind?: 'food' | 'exercise' | string;
+    kind?: 'food' | 'exercise' | 'yoga' | string;
     source?: string;
     dateKey?: string;
   };

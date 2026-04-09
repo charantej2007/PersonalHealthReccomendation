@@ -1,4 +1,9 @@
-import { GoogleAuthProvider, getRedirectResult, signInWithRedirect } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithRedirect,
+  type AuthError,
+} from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 export type GoogleUser = {
@@ -11,21 +16,45 @@ provider.setCustomParameters({
   prompt: 'select_account',
 });
 
-export async function continueWithGoogle(): Promise<void> {
-  await signInWithRedirect(auth, provider);
-}
-
-export async function getGoogleRedirectUser(): Promise<GoogleUser | null> {
-  const result = await getRedirectResult(auth);
-  if (!result) return null;
-
-  const firebaseUser = result.user;
-  if (!firebaseUser.email) {
+function toGoogleUser(email: string | null, displayName: string | null): GoogleUser {
+  if (!email) {
     throw new Error('Google account email is required.');
   }
 
   return {
-    email: firebaseUser.email,
-    displayName: firebaseUser.displayName ?? 'Google User',
+    email,
+    displayName: displayName ?? 'Google User',
   };
+}
+
+function toGoogleAuthErrorMessage(error: unknown): string {
+  const authError = error as Partial<AuthError>;
+  switch (authError?.code) {
+    case 'auth/unauthorized-domain':
+      return 'This localhost domain is not authorized in Firebase Auth. Add localhost in Firebase Console > Authentication > Settings > Authorized domains.';
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is disabled for this Firebase project. Enable Google provider in Firebase Console > Authentication > Sign-in method.';
+    default:
+      return authError?.message ?? 'Google sign-in failed.';
+  }
+}
+
+export async function continueWithGoogle(): Promise<GoogleUser | null> {
+  try {
+    await signInWithRedirect(auth, provider);
+    return null;
+  } catch (error) {
+    throw new Error(toGoogleAuthErrorMessage(error));
+  }
+}
+
+export async function getGoogleRedirectUser(): Promise<GoogleUser | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result) return null;
+
+    return toGoogleUser(result.user.email, result.user.displayName);
+  } catch (error) {
+    throw new Error(toGoogleAuthErrorMessage(error));
+  }
 }

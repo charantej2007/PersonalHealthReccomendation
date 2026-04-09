@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Weight, Activity, Save } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
-import { getCurrentUserId } from '../services/sessionService';
+import { getCurrentUserId, subscribeProfileUpdates } from '../services/sessionService';
 import { getUserProfile, submitDailyVitals } from '../services/backendService';
 
 export function EnterHealthDataScreen() {
@@ -27,20 +27,32 @@ export function EnterHealthDataScreen() {
       navigate('/login');
       return;
     }
+    const activeUserId = userId;
+    let isMounted = true;
 
     async function prefill() {
       try {
-        const profile = await getUserProfile(userId);
+        const profile = await getUserProfile(activeUserId);
+        if (!isMounted) return;
         setProfileData({
           height: String(profile.heightCm),
           weight: String(profile.weightKg),
         });
       } catch {
+        if (!isMounted) return;
         navigate('/login');
       }
     }
 
-    prefill();
+    void prefill();
+    const unsubscribe = subscribeProfileUpdates(() => {
+      void prefill();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { User, Mail, Phone, Edit, LogOut, Star, Calendar } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../services/backendService';
-import { clearCurrentUserId, getCurrentUserId } from '../services/sessionService';
+import { clearCurrentUserId, getCurrentUserId, markProfileUpdated } from '../services/sessionService';
 
 export function ProfileScreen() {
   const navigate = useNavigate();
@@ -84,6 +84,7 @@ export function ProfileScreen() {
 
       const refreshed = await getUserProfile(userId);
       setUserInfo(refreshed);
+      markProfileUpdated();
       setIsEditing(false);
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Could not update profile.');

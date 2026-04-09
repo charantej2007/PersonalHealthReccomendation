@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Heart } from 'lucide-react';
 import { getCurrentUserId } from '../services/sessionService';
 
 export function SplashScreen() {
@@ -21,8 +20,12 @@ export function SplashScreen() {
       <div className="absolute bottom-40 right-10 w-40 h-40 bg-[#4DB8AC]/5 rounded-full blur-2xl"></div>
       
       <div className="mb-8 relative">
-        <div className="w-28 h-28 bg-[#4DB8AC] rounded-3xl flex items-center justify-center shadow-lg shadow-[#4DB8AC]/20">
-          <Heart className="w-14 h-14 text-white" fill="white" />
+        <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-lg shadow-[#4DB8AC]/20 ring-4 ring-[#4DB8AC]/20">
+          <img
+            src="/image.png"
+            alt="Personalized Health logo"
+            className="w-24 h-24 rounded-full object-cover"
+          />
         </div>
         <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-[#4DB8AC]/30 rounded-full animate-pulse"></div>
       </div>

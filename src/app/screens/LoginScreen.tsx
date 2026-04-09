@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Mail, Lock, Heart, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import { findOrCreateUserByGoogle, findUserByEmail } from '../services/backendService';
 import { setCurrentUserId } from '../services/sessionService';
-import { continueWithGoogle, getGoogleRedirectUser } from '../services/authService';
+import { continueWithGoogle, getGoogleRedirectUser, type GoogleUser } from '../services/authService';
 import { GoogleButton } from '../components/GoogleButton';
 
 export function LoginScreen() {
@@ -16,15 +16,19 @@ export function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+  const completeGoogleSignIn = async (googleUser: GoogleUser) => {
+    const user = await findOrCreateUserByGoogle(googleUser.email, googleUser.displayName);
+    setCurrentUserId(user.id);
+    navigate('/home');
+  };
+
   useEffect(() => {
     async function processGoogleRedirect() {
       try {
         const googleUser = await getGoogleRedirectUser();
         if (!googleUser) return;
 
-        const user = await findOrCreateUserByGoogle(googleUser.email, googleUser.displayName);
-        setCurrentUserId(user.id);
-        navigate('/home');
+        await completeGoogleSignIn(googleUser);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Google sign-in failed';
         setError(message);
@@ -66,7 +70,10 @@ export function LoginScreen() {
     setError('');
     try {
       setIsGoogleLoading(true);
-      await continueWithGoogle();
+      const googleUser = await continueWithGoogle();
+      if (googleUser) {
+        await completeGoogleSignIn(googleUser);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed';
       setError(message);
@@ -79,8 +86,8 @@ export function LoginScreen() {
     <div className="h-full bg-white flex flex-col overflow-y-auto">
       <div className="bg-[#4DB8AC] px-8 pt-14 pb-24 rounded-b-[40px] relative">
         <BackButton className="mb-6 hover:bg-white/20" iconClassName="text-white" />
-        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-6">
-          <Heart className="w-8 h-8 text-white" fill="white" />
+        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 ring-2 ring-white/30 overflow-hidden">
+          <img src="/image.png" alt="App logo" className="w-14 h-14 rounded-full object-cover" />
         </div>
         <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back</h1>
         <p className="text-white/80">Sign in to your health account</p>

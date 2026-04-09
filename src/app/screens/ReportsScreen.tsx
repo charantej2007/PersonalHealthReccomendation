@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Download, Calendar, TrendingUp, Activity, TrendingDown } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
-import { getCurrentUserId } from '../services/sessionService';
+import { getCurrentUserId, subscribeProfileUpdates } from '../services/sessionService';
 import { getUserProfile, getVitalsHistory, type UserProfile, type VitalsEntry } from '../services/backendService';
 import { buildRangeSeries, summarizeSeries, type AnalyticsRange } from '../services/healthAnalytics';
 import { useNavigate } from 'react-router';
@@ -22,21 +22,34 @@ export function ReportsScreen() {
       navigate('/login');
       return;
     }
+    const activeUserId = userId;
+    let isMounted = true;
 
     async function load() {
       try {
         setLoading(true);
-        const [p, v] = await Promise.all([getUserProfile(userId), getVitalsHistory(userId, 180)]);
+        const [p, v] = await Promise.all([getUserProfile(activeUserId), getVitalsHistory(activeUserId, 180)]);
+        if (!isMounted) return;
         setProfile(p);
         setVitals(v);
       } catch {
+        if (!isMounted) return;
         navigate('/login');
       } finally {
+        if (!isMounted) return;
         setLoading(false);
       }
     }
 
-    load();
+    void load();
+    const unsubscribe = subscribeProfileUpdates(() => {
+      void load();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [navigate]);
 
   const range: AnalyticsRange = activeTab === 'weekly' ? '7days' : '1month';

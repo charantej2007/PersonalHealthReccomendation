@@ -46,26 +46,54 @@ async function getUserProfileOrThrow(userId) {
 async function createDailyRoutineNotifications(userId, recommendation) {
   const dateKey = new Date().toISOString().slice(0, 10);
 
+  const createDueAt = (hour, minute) => {
+    const dueAt = new Date();
+    dueAt.setSeconds(0, 0);
+    dueAt.setHours(hour, minute, 0, 0);
+    return dueAt;
+  };
+
   const routineNotifications = [
     {
-      id: `${userId}_${dateKey}_exercise`,
+      id: `${userId}_${dateKey}_yoga_morning`,
+      title: 'Yoga Reminder',
+      message: recommendation.yoga?.[0] ?? 'Complete your morning yoga flow today.',
+      dueAt: createDueAt(6, 30),
+      kind: 'yoga',
+    },
+    {
+      id: `${userId}_${dateKey}_diet_breakfast`,
+      title: 'Diet Reminder',
+      message: recommendation.food?.[0] ?? 'Follow your breakfast recommendation from today\'s plan.',
+      dueAt: createDueAt(7, 0),
+      kind: 'food',
+    },
+    {
+      id: `${userId}_${dateKey}_exercise_morning`,
       title: 'Exercise Reminder',
       message: recommendation.exercises?.[0] ?? 'Do your planned exercise session today.',
-      dueAt: `${dateKey}T07:00:00.000Z`,
+      dueAt: createDueAt(7, 30),
       kind: 'exercise',
     },
     {
       id: `${userId}_${dateKey}_meal_lunch`,
-      title: 'Food Reminder',
+      title: 'Diet Reminder',
       message: recommendation.food?.[1] ?? 'Follow your lunch recommendation from today\'s plan.',
-      dueAt: `${dateKey}T13:00:00.000Z`,
+      dueAt: createDueAt(13, 0),
       kind: 'food',
     },
     {
+      id: `${userId}_${dateKey}_yoga_evening`,
+      title: 'Yoga Reminder',
+      message: recommendation.yoga?.[1] ?? 'Take 10 minutes for evening breathing and relaxation.',
+      dueAt: createDueAt(18, 0),
+      kind: 'yoga',
+    },
+    {
       id: `${userId}_${dateKey}_meal_dinner`,
-      title: 'Food Reminder',
+      title: 'Diet Reminder',
       message: recommendation.food?.[3] ?? 'Keep dinner light and according to your plan.',
-      dueAt: `${dateKey}T19:00:00.000Z`,
+      dueAt: createDueAt(19, 0),
       kind: 'food',
     },
   ];

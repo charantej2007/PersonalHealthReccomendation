@@ -2,20 +2,50 @@ import { useNavigate } from 'react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Apple, Dumbbell, Sparkles, Activity, TrendingUp, Bell } from 'lucide-react';
-import { BackButton } from '../components/BackButton';
 import {
   getNotifications,
   getRecentVitals,
   getUserProfile,
   type UserProfile,
 } from '../services/backendService';
-import { getCurrentUserId } from '../services/sessionService';
+import { getCurrentUserId, subscribeProfileUpdates } from '../services/sessionService';
+
+const HEALTH_TIPS = [
+  'Drink at least 8 glasses of water daily to stay hydrated and maintain optimal health.',
+  'Take a 10-15 minute walk after meals to support blood sugar control.',
+  'Limit processed foods and prefer whole grains, lean proteins, and vegetables.',
+  'Sleep 7-8 hours consistently to improve recovery, energy, and heart health.',
+  'Reduce added salt intake to help manage blood pressure over time.',
+  'Practice 5 minutes of deep breathing to lower stress and improve focus.',
+  'Track your BP and sugar at fixed times each day for better trend accuracy.',
+  'Include a protein source in every main meal to improve satiety and muscle health.',
+  'Stretch for a few minutes daily to support mobility and reduce stiffness.',
+  'Avoid sugary drinks and choose water, lemon water, or unsweetened beverages.',
+];
+
+const HEALTH_TIP_INDEX_KEY = 'phr_health_tip_index';
+
+function getRotatingHealthTip(): string {
+  if (typeof window === 'undefined') {
+    return HEALTH_TIPS[0];
+  }
+
+  const previousRaw = window.localStorage.getItem(HEALTH_TIP_INDEX_KEY);
+  const previousIndex = Number.parseInt(previousRaw ?? '-1', 10);
+  const nextIndex = Number.isFinite(previousIndex)
+    ? (previousIndex + 1) % HEALTH_TIPS.length
+    : 0;
+
+  window.localStorage.setItem(HEALTH_TIP_INDEX_KEY, String(nextIndex));
+  return HEALTH_TIPS[nextIndex];
+}
 
 export function HomeScreen() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [latestVitals, setLatestVitals] = useState<{ systolic: number; diastolic: number; sugarLevel: number } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [healthTip] = useState<string>(() => getRotatingHealthTip());
 
   useEffect(() => {
     const userId = getCurrentUserId();
@@ -23,14 +53,17 @@ export function HomeScreen() {
       navigate('/login');
       return;
     }
+    const activeUserId = userId;
+    let isMounted = true;
 
     async function loadHomeData() {
       try {
         const [profile, vitals, notifications] = await Promise.all([
-          getUserProfile(userId),
-          getRecentVitals(userId),
-          getNotifications(userId),
+          getUserProfile(activeUserId),
+          getRecentVitals(activeUserId),
+          getNotifications(activeUserId),
         ]);
+        if (!isMounted) return;
         setUser(profile);
         if (vitals) {
           setLatestVitals({
@@ -38,14 +71,36 @@ export function HomeScreen() {
             diastolic: vitals.diastolic,
             sugarLevel: vitals.sugarLevel,
           });
+        } else {
+          setLatestVitals(null);
         }
         setUnreadCount(notifications.filter((n) => !n.read).length);
       } catch {
+        if (!isMounted) return;
         navigate('/login');
       }
     }
 
-    loadHomeData();
+    void loadHomeData();
+    const unsubscribe = subscribeProfileUpdates(() => {
+      void loadHomeData();
+    });
+
+    const interval = window.setInterval(() => {
+      void loadHomeData();
+    }, 30000);
+
+    const handleFocus = () => {
+      void loadHomeData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      window.clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [navigate]);
 
   const bmi = useMemo(() => {
@@ -71,7 +126,6 @@ export function HomeScreen() {
     <div className="h-full bg-gray-50 relative flex flex-col">
       <div className="flex-1 overflow-y-auto pb-20">
       <div className="bg-[#4DB8AC] px-6 pt-14 pb-8 rounded-b-[30px]">
-        <BackButton className="mb-2 hover:bg-white/20" iconClassName="text-white" />
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-white/80 text-sm mb-1">Good Morning</p>
@@ -186,7 +240,7 @@ export function HomeScreen() {
         <div className="bg-gradient-to-br from-[#4DB8AC] to-[#45A599] rounded-3xl p-6 shadow-sm">
           <h3 className="text-white font-semibold mb-2">💡 Health Tips</h3>
           <p className="text-white/90 text-sm leading-relaxed">
-            Drink at least 8 glasses of water daily to stay hydrated and maintain optimal health.
+            {healthTip}
           </p>
         </div>
       </div>
