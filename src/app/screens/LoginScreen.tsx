@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import { findOrCreateUserByGoogle, findUserByEmail } from '../services/backendService';
@@ -9,12 +9,21 @@ import { GoogleButton } from '../components/GoogleButton';
 
 export function LoginScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
+
+  useEffect(() => {
+    const state = location.state as { passwordResetSuccess?: boolean } | null;
+    if (state?.passwordResetSuccess) {
+      setInfoMessage('Password reset successful. Please login with your new password.');
+    }
+  }, [location.state]);
 
   const completeGoogleSignIn = async (googleUser: GoogleUser) => {
     const user = await findOrCreateUserByGoogle(googleUser.email, googleUser.displayName);
@@ -132,6 +141,7 @@ export function LoginScreen() {
 
           <button
             type="button"
+            onClick={() => navigate('/forgot-password')}
             className="text-sm text-[#4DB8AC] font-medium ml-auto block"
           >
             Forgot Password?
@@ -149,6 +159,7 @@ export function LoginScreen() {
             Continue with Google
           </GoogleButton>
 
+          {infoMessage && <p className="text-sm text-[#4DB8AC] -mt-2">{infoMessage}</p>}
           {error && <p className="text-sm text-red-500 -mt-2">{error}</p>}
 
           <div className="flex items-center gap-4 my-6">

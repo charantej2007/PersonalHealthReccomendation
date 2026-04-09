@@ -155,3 +155,52 @@ export async function markNotificationRead(notificationId: string): Promise<void
     method: 'PATCH',
   });
 }
+
+export async function requestSignupOtp(email: string): Promise<{
+  ok: boolean;
+  message: string;
+  expiresInSeconds: number;
+  resendCooldownSeconds: number;
+}> {
+  return apiRequest('/api/auth/signup/request-otp', {
+    method: 'POST',
+    body: { email },
+  });
+}
+
+export async function verifySignupOtp(email: string, otp: string): Promise<{ ok: boolean; verified: boolean; message: string }> {
+  return apiRequest('/api/auth/signup/verify-otp', {
+    method: 'POST',
+    body: { email, otp },
+  });
+}
+
+export async function requestForgotPasswordOtp(email: string): Promise<{
+  ok: boolean;
+  message: string;
+  expiresInSeconds: number;
+  resendCooldownSeconds: number;
+}> {
+  return apiRequest('/api/auth/forgot-password/request-otp', {
+    method: 'POST',
+    body: { email },
+  });
+}
+
+export async function verifyForgotPasswordOtp(email: string, otp: string): Promise<{ ok: boolean; verified: boolean; message: string }> {
+  return apiRequest('/api/auth/forgot-password/verify-otp', {
+    method: 'POST',
+    body: { email, otp },
+  });
+}
+
+export async function resetForgotPassword(
+  email: string,
+  password: string,
+  confirmPassword: string
+): Promise<{ ok: boolean; message: string }> {
+  return apiRequest('/api/auth/forgot-password/reset-password', {
+    method: 'POST',
+    body: { email, password, confirmPassword },
+  });
+}

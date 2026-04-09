@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import usersRouter from './routes/users.routes.js';
 import healthRouter from './routes/health.routes.js';
+import authRouter from './routes/auth.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 export function createApp() {
@@ -22,6 +23,7 @@ export function createApp() {
     res.json({ status: 'ok', service: 'personal-health-backend' });
   });
 
+  app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api', healthRouter);
 

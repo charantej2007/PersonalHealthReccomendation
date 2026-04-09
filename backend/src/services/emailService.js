@@ -1,0 +1,78 @@
+import nodemailer from 'nodemailer';
+import { env } from '../config/env.js';
+
+function getNormalizedAuth() {
+  return {
+    user: env.SMTP_USER.trim().toLowerCase(),
+    // Gmail app password is displayed with spaces, but auth expects compact value.
+    pass: env.SMTP_PASS.replace(/\s+/g, ''),
+  };
+}
+
+function getOtpEmailContent({ otp, expiryMinutes, purpose }) {
+  if (purpose === 'forgot-password') {
+    return {
+      subject: 'Your Password Reset Verification Code',
+      heading: 'Verify password reset',
+      intro: 'Use the OTP below to reset your password:',
+    };
+  }
+
+  return {
+    subject: 'Your Signup Verification Code',
+    heading: 'Verify your email',
+    intro: 'Use the OTP below to continue your signup:',
+  };
+}
+
+function getPrimaryTransport() {
+  const auth = getNormalizedAuth();
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    secure: true,
+    port: 465,
+    auth,
+  });
+}
+
+function getFallbackTransport() {
+  const auth = getNormalizedAuth();
+
+  return nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
+    requireTLS: true,
+    auth,
+  });
+}
+
+export async function sendOtpEmail({ email, otp, expiryMinutes, purpose = 'signup' }) {
+  const from = `${env.MAIL_FROM_NAME} <${env.MAIL_FROM_ADDRESS}>`;
+  const content = getOtpEmailContent({ otp, expiryMinutes, purpose });
+
+  const payload = {
+    from,
+    to: email,
+    subject: content.subject,
+    text: `Your verification code is ${otp}. It expires in ${expiryMinutes} minutes.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+        <h2 style="margin-bottom: 8px;">${content.heading}</h2>
+        <p style="margin-top: 0;">${content.intro}</p>
+        <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 16px 0; color: #0f766e;">
+          ${otp}
+        </div>
+        <p>This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+        <p>If you did not request this, you can ignore this email.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await getPrimaryTransport().sendMail(payload);
+  } catch (primaryError) {
+    await getFallbackTransport().sendMail(payload);
+  }
+}
