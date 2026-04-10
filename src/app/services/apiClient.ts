@@ -1,5 +1,7 @@
-const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL ?? 'https://personalhealthreccomendation.onrender.com';
+const configuredBaseUrl = import.meta.env.VITE_BACKEND_URL?.trim();
+
+// In production on Vercel, default to same-origin /api unless explicitly overridden.
+const API_BASE_URL = configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, '') : '';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

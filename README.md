@@ -21,7 +21,7 @@ VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 VITE_FIREBASE_MEASUREMENT_ID=...
-VITE_BACKEND_URL=https://personalhealthreccomendation.onrender.com
+VITE_BACKEND_URL=http://localhost:8080,https://personalhealthreccomendation.onrender.com
 ```
 
 3. Start the app again:
@@ -29,6 +29,9 @@ VITE_BACKEND_URL=https://personalhealthreccomendation.onrender.com
 ```bash
 npm run dev -- --port 5174
 ```
+
+Note:
+- In Vercel deployment, leave `VITE_BACKEND_URL` unset so frontend calls same-origin `/api`.
 
 ### Firestore Database Service
 
@@ -102,3 +105,21 @@ Frontend integration files:
 - `src/app/services/apiClient.ts`
 - `src/app/services/backendService.ts`
 - `src/app/services/sessionService.ts`
+
+## Vercel Deployment Notes
+
+This repository now serves backend routes from Vercel serverless functions via `api/[...path].js`.
+
+Required Vercel environment variables for backend auth flows:
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY` (preserve escaped `\n` newlines)
+- `FIREBASE_DATABASE_URL` (optional)
+- `SMTP_USER`
+- `SMTP_PASS`
+- `MAIL_FROM_ADDRESS`
+
+Optional backend env vars:
+- `MAIL_FROM_NAME`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`
+- `OTP_LENGTH`, `OTP_EXPIRY_MINUTES`, `OTP_MAX_ATTEMPTS`, `OTP_RESEND_COOLDOWN_SECONDS`, `OTP_MAX_RESENDS_PER_HOUR`, `OTP_PURPOSES`
