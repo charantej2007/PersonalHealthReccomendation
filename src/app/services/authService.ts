@@ -51,7 +51,13 @@ export async function continueWithGoogle(): Promise<GoogleUser | null> {
 export async function getGoogleRedirectUser(): Promise<GoogleUser | null> {
   try {
     const result = await getRedirectResult(auth);
-    if (!result) return null;
+    if (!result) {
+      // Some browsers restore session without returning a redirect result object.
+      const currentUser = auth.currentUser;
+      if (!currentUser) return null;
+
+      return toGoogleUser(currentUser.email, currentUser.displayName);
+    }
 
     return toGoogleUser(result.user.email, result.user.displayName);
   } catch (error) {

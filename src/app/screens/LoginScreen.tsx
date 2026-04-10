@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
-import { findOrCreateUserByGoogle, findUserByEmail } from '../services/backendService';
+import { findUserByEmail } from '../services/backendService';
 import { setCurrentUserId } from '../services/sessionService';
 import { continueWithGoogle, getGoogleRedirectUser, type GoogleUser } from '../services/authService';
 import { GoogleButton } from '../components/GoogleButton';
@@ -19,16 +19,30 @@ export function LoginScreen() {
   const [infoMessage, setInfoMessage] = useState('');
 
   useEffect(() => {
-    const state = location.state as { passwordResetSuccess?: boolean } | null;
+    const state = location.state as { passwordResetSuccess?: boolean; redirectedFromSignup?: boolean } | null;
     if (state?.passwordResetSuccess) {
       setInfoMessage('Password reset successful. Please login with your new password.');
+      return;
+    }
+
+    if (state?.redirectedFromSignup) {
+      setInfoMessage('This Google email is already registered. Please continue from login.');
     }
   }, [location.state]);
 
   const completeGoogleSignIn = async (googleUser: GoogleUser) => {
-    const user = await findOrCreateUserByGoogle(googleUser.email, googleUser.displayName);
-    setCurrentUserId(user.id);
-    navigate('/home');
+    const user = await findUserByEmail(googleUser.email);
+    if (user) {
+      setCurrentUserId(user.id);
+      navigate('/home');
+      return;
+    }
+
+    navigate('/signup', {
+      state: {
+        googleUser,
+      },
+    });
   };
 
   useEffect(() => {

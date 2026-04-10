@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import { findUserByEmail } from '../services/backendService';
-import { continueWithGoogle, getGoogleRedirectUser } from '../services/authService';
+import { continueWithGoogle, getGoogleRedirectUser, type GoogleUser } from '../services/authService';
 import { GoogleButton } from '../components/GoogleButton';
+
+type SignUpLocationState = {
+  googleUser?: GoogleUser;
+};
 
 export function SignUpScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = (location.state as SignUpLocationState | null) ?? null;
+  const googleUserFromLogin = locationState?.googleUser ?? null;
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,6 +26,17 @@ export function SignUpScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+  const continueGoogleSignup = (googleUser: GoogleUser) => {
+    navigate('/complete-profile', {
+      state: {
+        email: googleUser.email,
+        name: googleUser.displayName,
+        source: 'google',
+        otpVerified: true,
+      },
+    });
+  };
+
   useEffect(() => {
     async function processGoogleRedirect() {
       try {
@@ -27,18 +45,15 @@ export function SignUpScreen() {
 
         const existingUser = await findUserByEmail(googleUser.email);
         if (existingUser) {
-          setError('An account already exists for this Google email. Please login instead.');
+          navigate('/login', {
+            state: {
+              redirectedFromSignup: true,
+            },
+          });
           return;
         }
 
-        navigate('/complete-profile', {
-          state: {
-            email: googleUser.email,
-            name: googleUser.displayName,
-            source: 'google',
-            otpVerified: true,
-          },
-        });
+        continueGoogleSignup(googleUser);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Google sign-up failed';
         setError(message);
@@ -112,6 +127,21 @@ export function SignUpScreen() {
         
         <h1 className="text-3xl font-semibold text-gray-800 mb-2">Create Account</h1>
         <p className="text-gray-500 mb-8">Step 1 of 2: Create your account</p>
+
+        {googleUserFromLogin && (
+          <div className="mb-6 rounded-xl border border-[#4DB8AC]/30 bg-[#4DB8AC]/10 p-4">
+            <p className="text-sm text-gray-700 mb-3">
+              No account exists for <span className="font-semibold">{googleUserFromLogin.email}</span>.
+            </p>
+            <button
+              type="button"
+              onClick={() => continueGoogleSignup(googleUserFromLogin)}
+              className="w-full py-3 bg-[#4DB8AC] text-white rounded-xl font-semibold hover:bg-[#45A599] transition-colors"
+            >
+              Continue Google Signup
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
