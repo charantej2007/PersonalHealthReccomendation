@@ -1,7 +1,9 @@
 import {
   GoogleAuthProvider,
   getRedirectResult,
+  signInWithPopup,
   signInWithRedirect,
+  signOut,
   type AuthError,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -31,9 +33,11 @@ function toGoogleAuthErrorMessage(error: unknown): string {
   const authError = error as Partial<AuthError>;
   switch (authError?.code) {
     case 'auth/unauthorized-domain':
-      return 'This localhost domain is not authorized in Firebase Auth. Add localhost in Firebase Console > Authentication > Settings > Authorized domains.';
+      return 'This domain is not authorized in Firebase Auth. Add your deployed domain in Firebase Console > Authentication > Settings > Authorized domains.';
     case 'auth/operation-not-allowed':
       return 'Google sign-in is disabled for this Firebase project. Enable Google provider in Firebase Console > Authentication > Sign-in method.';
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in was cancelled before completion.';
     default:
       return authError?.message ?? 'Google sign-in failed.';
   }
@@ -41,6 +45,22 @@ function toGoogleAuthErrorMessage(error: unknown): string {
 
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
+    try {
+      const popupResult = await signInWithPopup(auth, provider);
+      return toGoogleUser(popupResult.user.email, popupResult.user.displayName);
+    } catch (popupError) {
+      const authError = popupError as Partial<AuthError>;
+      const fallbackToRedirectCodes = new Set([
+        'auth/popup-blocked',
+        'auth/cancelled-popup-request',
+        'auth/operation-not-supported-in-this-environment',
+      ]);
+
+      if (!authError.code || !fallbackToRedirectCodes.has(authError.code)) {
+        throw popupError;
+      }
+    }
+
     await signInWithRedirect(auth, provider);
     return null;
   } catch (error) {
@@ -63,4 +83,8 @@ export async function getGoogleRedirectUser(): Promise<GoogleUser | null> {
   } catch (error) {
     throw new Error(toGoogleAuthErrorMessage(error));
   }
+}
+
+export async function signOutGoogleSession(): Promise<void> {
+  await signOut(auth);
 }

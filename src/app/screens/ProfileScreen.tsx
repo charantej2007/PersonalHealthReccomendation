@@ -4,6 +4,7 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { User, Mail, Phone, Edit, LogOut, Star, Calendar } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../services/backendService';
+import { signOutGoogleSession } from '../services/authService';
 import { clearCurrentUserId, getCurrentUserId, markProfileUpdated } from '../services/sessionService';
 
 export function ProfileScreen() {
@@ -252,9 +253,15 @@ export function ProfileScreen() {
 
         {/* Logout Button */}
         <button
-          onClick={() => {
-            clearCurrentUserId();
-            navigate('/login');
+          onClick={async () => {
+            try {
+              await signOutGoogleSession();
+            } catch {
+              // Continue local logout even if Firebase sign-out fails.
+            } finally {
+              clearCurrentUserId();
+              navigate('/login');
+            }
           }}
           className="w-full py-4 bg-white text-red-500 rounded-2xl font-semibold hover:bg-red-50 transition-colors shadow-sm flex items-center justify-center gap-2"
         >

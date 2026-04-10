@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { BackButton } from '../components/BackButton';
+import { auth } from '../lib/firebase';
 import { findUserByEmail } from '../services/backendService';
 import { setCurrentUserId } from '../services/sessionService';
 import { continueWithGoogle, getGoogleRedirectUser, type GoogleUser } from '../services/authService';
@@ -46,19 +48,54 @@ export function LoginScreen() {
   };
 
   useEffect(() => {
+    let isCancelled = false;
+    let hasHandledGoogleUser = false;
+
+    const resolveGoogleUser = async (googleUser: GoogleUser) => {
+      if (isCancelled || hasHandledGoogleUser) return;
+      hasHandledGoogleUser = true;
+
+      try {
+        setIsGoogleLoading(true);
+        setError('');
+        await completeGoogleSignIn(googleUser);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Google sign-in failed';
+        setError(message);
+      } finally {
+        if (!isCancelled) {
+          setIsGoogleLoading(false);
+        }
+      }
+    };
+
     async function processGoogleRedirect() {
       try {
         const googleUser = await getGoogleRedirectUser();
         if (!googleUser) return;
 
-        await completeGoogleSignIn(googleUser);
+        await resolveGoogleUser(googleUser);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Google sign-in failed';
         setError(message);
       }
     }
 
-    processGoogleRedirect();
+    void processGoogleRedirect();
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser?.email) return;
+
+      void resolveGoogleUser({
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName ?? 'Google User',
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -96,6 +133,8 @@ export function LoginScreen() {
       const googleUser = await continueWithGoogle();
       if (googleUser) {
         await completeGoogleSignIn(googleUser);
+        setIsGoogleLoading(false);
+        return;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed';
