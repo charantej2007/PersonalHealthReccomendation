@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
+function assertEmailOtpConfigured() {
+  if (!env.EMAIL_OTP_ENABLED) {
+    throw new Error('Email OTP service is not configured. Set SMTP_USER, SMTP_PASS, and MAIL_FROM_ADDRESS.');
+  }
+}
+
 function getNormalizedAuth() {
   return {
     user: env.SMTP_USER.trim().toLowerCase(),
@@ -49,6 +55,8 @@ function getFallbackTransport() {
 }
 
 export async function sendOtpEmail({ email, otp, expiryMinutes, purpose = 'signup' }) {
+  assertEmailOtpConfigured();
+
   const from = `${env.MAIL_FROM_NAME} <${env.MAIL_FROM_ADDRESS}>`;
   const content = getOtpEmailContent({ otp, expiryMinutes, purpose });
 

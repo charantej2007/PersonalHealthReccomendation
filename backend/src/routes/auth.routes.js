@@ -70,6 +70,9 @@ async function sendOtpWithErrorHandling({ email, otp, purpose }) {
       purpose,
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('not configured')) {
+      throw new ApiError(503, 'Email OTP service is not configured on the server. Please contact support.');
+    }
     if (error?.code === 'EAUTH') {
       throw new ApiError(500, 'Email configuration error: SMTP username or app password is invalid.');
     }
