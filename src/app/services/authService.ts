@@ -45,6 +45,15 @@ function toGoogleAuthErrorMessage(error: unknown): string {
 
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (!isLocalhost) {
+      await signInWithRedirect(auth, provider);
+      return null;
+    }
+
     try {
       const popupResult = await signInWithPopup(auth, provider);
       return toGoogleUser(popupResult.user.email, popupResult.user.displayName);
