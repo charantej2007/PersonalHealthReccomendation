@@ -21,7 +21,7 @@ VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 VITE_FIREBASE_MEASUREMENT_ID=...
-VITE_BACKEND_URL=http://localhost:8080,https://personalhealthreccomendation.onrender.com
+VITE_BACKEND_URL=http://localhost:8080
 ```
 
 3. Start the app again:
@@ -118,6 +118,15 @@ Required Vercel environment variables for backend auth flows:
 - `SMTP_USER`
 - `SMTP_PASS`
 - `MAIL_FROM_ADDRESS`
+
+Recommended Vercel environment variables:
+- `APP_BASE_URL` (for example: `https://personal-health-reccomendation.vercel.app`)
+- `MAIL_FROM_NAME`
+
+If Google login returns to the same page, or OTP requests fail without navigation:
+- check `GET /api/health` on your deployed domain first;
+- if it returns `500`, backend env variables are missing or invalid in Vercel Project Settings;
+- after fixing env vars, redeploy.
 
 Optional backend env vars:
 - `MAIL_FROM_NAME`

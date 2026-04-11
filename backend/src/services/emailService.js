@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 
 function assertEmailOtpConfigured() {
   if (!env.EMAIL_OTP_ENABLED) {
-    throw new Error('Email OTP service is not configured. Set SMTP_USER, SMTP_PASS, and MAIL_FROM_ADDRESS.');
+    throw new Error('Email OTP service is not configured. Set SMTP_USER and SMTP_PASS.');
   }
 }
 
