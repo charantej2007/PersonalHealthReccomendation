@@ -29,9 +29,9 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     BACKEND_PORT: z.coerce.number().default(8080),
-    FIREBASE_PROJECT_ID: z.string().min(1),
-    FIREBASE_CLIENT_EMAIL: z.string().min(1),
-    FIREBASE_PRIVATE_KEY: z.string().min(1),
+    FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().min(1).optional(),
+    FIREBASE_PRIVATE_KEY: z.string().min(1).optional(),
     FIREBASE_DATABASE_URL: envUrl.optional(),
 
     MAIL_PROVIDER: z.enum(['smtp']).default('smtp'),
@@ -79,14 +79,24 @@ if (!result.success) {
 }
 
 const mailFromAddress = result.data.MAIL_FROM_ADDRESS || result.data.SMTP_USER;
+const firebaseAdminEnabled = Boolean(
+  result.data.FIREBASE_PROJECT_ID && result.data.FIREBASE_CLIENT_EMAIL && result.data.FIREBASE_PRIVATE_KEY
+);
 
 export const env = {
   ...result.data,
-  FIREBASE_PRIVATE_KEY: result.data.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  FIREBASE_PRIVATE_KEY: result.data.FIREBASE_PRIVATE_KEY
+    ? result.data.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    : undefined,
   MAIL_FROM_ADDRESS: mailFromAddress,
+  FIREBASE_ADMIN_ENABLED: firebaseAdminEnabled,
   EMAIL_OTP_ENABLED: Boolean(result.data.SMTP_USER && result.data.SMTP_PASS),
 };
 
 if (!env.EMAIL_OTP_ENABLED) {
   console.warn('Email OTP is disabled. Set SMTP_USER and SMTP_PASS to enable OTP email delivery.');
+}
+
+if (!env.FIREBASE_ADMIN_ENABLED) {
+  console.warn('Firebase Admin is disabled. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
 }
