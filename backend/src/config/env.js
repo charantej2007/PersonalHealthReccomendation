@@ -71,9 +71,11 @@ const envSchema = z
 const result = envSchema.safeParse(process.env);
 
 if (!result.success) {
+  const fieldErrors = result.error.flatten().fieldErrors;
   console.error('Invalid backend environment configuration.');
-  console.error(result.error.flatten().fieldErrors);
-  process.exit(1);
+  console.error(fieldErrors);
+
+  throw new Error(`Invalid backend environment configuration: ${JSON.stringify(fieldErrors)}`);
 }
 
 const mailFromAddress = result.data.MAIL_FROM_ADDRESS || result.data.SMTP_USER;
