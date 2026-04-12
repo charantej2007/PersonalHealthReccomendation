@@ -75,9 +75,12 @@ export function HomeScreen() {
           setLatestVitals(null);
         }
         setUnreadCount(notifications.filter((n) => !n.read).length);
-      } catch {
+      } catch (err) {
         if (!isMounted) return;
-        navigate('/login');
+        console.error('Failed to load home data:', err);
+        // If we get an error, it's likely a backend configuration issue (like the 404s seen in production).
+        // We stay on the page but could show an error state if needed.
+        // For now, let's just log it and not redirect to prevent the login-loop.
       }
     }
 

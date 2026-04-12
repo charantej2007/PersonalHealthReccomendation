@@ -42,6 +42,18 @@ function resolveBackendBaseUrl(rawValue: string | undefined): string {
 // In production on Vercel, default to same-origin /api unless explicitly overridden.
 const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl);
 
+// Logic to prevent 404 loops in production if VITE_BACKEND_URL is missing.
+const isProduction = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1';
+
+if (isProduction && (!API_BASE_URL || API_BASE_URL.startsWith('/'))) {
+  console.error(
+    'CRITICAL: VITE_BACKEND_URL is missing or invalid in production production environment. ' +
+    'API calls will fail. Check your Vercel Environment Variables.'
+  );
+}
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -69,11 +81,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
-  } catch {
-    throw new ApiClientError(
-      'Could not reach the backend service. Check deployment URL and server availability.',
-      0
-    );
+  } catch (err) {
+    const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const message = isLocalhost
+      ? 'Could not reach the local backend. Make sure your server is running on port 8080.'
+      : `Could not reach the backend service at "${API_BASE_URL}". Please ensure VITE_BACKEND_URL is set correctly in your Vercel environment variables.`;
+    
+    throw new ApiClientError(message, 0, err);
   }
 
   const contentType = response.headers.get('content-type');

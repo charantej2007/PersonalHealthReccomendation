@@ -79,8 +79,19 @@ export async function sendOtpEmail({ email, otp, expiryMinutes, purpose = 'signu
   };
 
   try {
-    await getPrimaryTransport().sendMail(payload);
+    console.log(`[EmailService] Attempting to send ${purpose} OTP to ${email} via primary transport...`);
+    const transport = getPrimaryTransport();
+    await transport.sendMail(payload);
+    console.log(`[EmailService] OTP sent successfully to ${email}`);
   } catch (primaryError) {
-    await getFallbackTransport().sendMail(payload);
+    console.warn(`[EmailService] Primary transport failed for ${email}:`, primaryError.message);
+    try {
+      console.log(`[EmailService] Attempting fallback transport for ${email}...`);
+      await getFallbackTransport().sendMail(payload);
+      console.log(`[EmailService] OTP sent successfully to ${email} via fallback`);
+    } catch (fallbackError) {
+      console.error(`[EmailService] All email transports failed for ${email}:`, fallbackError.message);
+      throw fallbackError;
+    }
   }
 }

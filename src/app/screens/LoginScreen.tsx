@@ -144,6 +144,19 @@ export function LoginScreen() {
     }
   };
 
+  const checkBackend = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/health`);
+      if (response.ok) {
+        alert('Backend is reachable! URL: ' + (import.meta.env.VITE_BACKEND_URL || 'relative /api'));
+      } else {
+        alert('Backend returned error ' + response.status + ' at URL: ' + (import.meta.env.VITE_BACKEND_URL || 'relative /api'));
+      }
+    } catch (err) {
+      alert('Backend UNREACHABLE. Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
   return (
     <div className="h-full bg-white flex flex-col overflow-y-auto">
       <div className="bg-[#4DB8AC] px-8 pt-14 pb-24 rounded-b-[40px] relative">
@@ -231,6 +244,15 @@ export function LoginScreen() {
         >
           Create Account
         </button>
+
+        <div className="mt-8 pt-8 border-t border-gray-100">
+          <button
+            onClick={checkBackend}
+            className="text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Check Backend Connection (Debug)
+          </button>
+        </div>
       </div>
     </div>
   );
