@@ -45,35 +45,27 @@ function toGoogleAuthErrorMessage(error: unknown): string {
 
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
-    const isLocalhost =
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    console.log('[AuthService] Attempting Google Sign-in with Popup...');
+    const popupResult = await signInWithPopup(auth, provider);
+    console.log('[AuthService] Popup success for:', popupResult.user.email);
+    return toGoogleUser(popupResult.user.email, popupResult.user.displayName);
+  } catch (popupError) {
+    const authError = popupError as Partial<AuthError>;
+    console.warn('[AuthService] Popup failed, falling back to redirect. Error code:', authError.code);
 
-    if (!isLocalhost) {
-      await signInWithRedirect(auth, provider);
-      return null;
+    const fallbackToRedirectCodes = new Set([
+      'auth/popup-blocked',
+      'auth/cancelled-popup-request',
+      'auth/operation-not-supported-in-this-environment',
+    ]);
+
+    if (!authError.code || !fallbackToRedirectCodes.has(authError.code)) {
+      throw new Error(toGoogleAuthErrorMessage(popupError));
     }
 
-    try {
-      const popupResult = await signInWithPopup(auth, provider);
-      return toGoogleUser(popupResult.user.email, popupResult.user.displayName);
-    } catch (popupError) {
-      const authError = popupError as Partial<AuthError>;
-      const fallbackToRedirectCodes = new Set([
-        'auth/popup-blocked',
-        'auth/cancelled-popup-request',
-        'auth/operation-not-supported-in-this-environment',
-      ]);
-
-      if (!authError.code || !fallbackToRedirectCodes.has(authError.code)) {
-        throw popupError;
-      }
-    }
-
+    console.log('[AuthService] Initiating Redirect fallback...');
     await signInWithRedirect(auth, provider);
     return null;
-  } catch (error) {
-    throw new Error(toGoogleAuthErrorMessage(error));
   }
 }
 
