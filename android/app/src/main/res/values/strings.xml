@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Personalized Health</string>
+    <string name="title_activity_main">Personalized Health</string>
+    <string name="package_name">com.personalized.health</string>
+    <string name="custom_url_scheme">com.personalized.health</string>
+</resources>
