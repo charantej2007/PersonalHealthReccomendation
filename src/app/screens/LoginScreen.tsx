@@ -211,13 +211,7 @@ export function LoginScreen() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/forgot-password')}
-            className="text-sm text-[#4DB8AC] font-medium ml-auto block"
-          >
-            Forgot Password?
-          </button>
+          <div className="pt-2"></div>
 
           <button
             type="submit"

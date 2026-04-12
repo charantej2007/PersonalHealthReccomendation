@@ -132,11 +132,12 @@ export function SignUpScreen() {
         return;
       }
 
-      // OTP verification is required before collecting personal information.
-      navigate('/signup-otp', {
+      // OTP verification removed - navigating directly to profile completion.
+      navigate('/complete-profile', {
         state: {
           email: formData.email,
           source: 'email',
+          otpVerified: true,
         },
       });
     } catch (err) {

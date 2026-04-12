@@ -36,11 +36,11 @@ export function CompleteProfileScreen() {
     [signupSource]
   );
 
-  if (!signupEmail || !otpVerified) {
+  if (!signupEmail) {
     return (
       <div className="h-full bg-white flex flex-col items-center justify-center px-8 text-center">
-        <h2 className="text-xl font-semibold text-gray-800">Verification required</h2>
-        <p className="text-gray-500 mt-2">Please complete signup verification first.</p>
+        <h2 className="text-xl font-semibold text-gray-800">Signup required</h2>
+        <p className="text-gray-500 mt-2">Please start the signup process again.</p>
         <button
           onClick={() => navigate('/signup')}
           className="mt-6 px-5 py-3 bg-[#4DB8AC] text-white rounded-xl font-semibold"
