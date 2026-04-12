@@ -39,8 +39,10 @@ function resolveBackendBaseUrl(rawValue: string | undefined): string {
   return (preferred?.value ?? parsedCandidates[0].value).replace(/\/+$/, '');
 }
 
-// In production on Vercel, default to same-origin /api unless explicitly overridden.
-const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl);
+// Safety fallback for production: your specific Render URL.
+const PRODUCTION_BACKEND_URL = 'https://personalhealthreccomendation.onrender.com';
+
+const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl) || (isProduction ? PRODUCTION_BACKEND_URL : '');
 
 // Logic to prevent 404 loops in production if VITE_BACKEND_URL is missing.
 const isProduction = typeof window !== 'undefined' && 

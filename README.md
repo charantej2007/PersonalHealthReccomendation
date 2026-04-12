@@ -110,6 +110,11 @@ Frontend integration files:
 
 This repository now serves backend routes from Vercel serverless functions via `api/[...path].js`. However, if you are using a separate backend (like **Render**), you **MUST** configure the frontend to talk to it.
 
+### Official Production Links:
+
+- **Frontend**: [https://personal-health-reccomendation.vercel.app](https://personal-health-reccomendation.vercel.app)
+- **Backend (Render)**: [https://personalhealthreccomendation.onrender.com](https://personalhealthreccomendation.onrender.com)
+
 ### Required Vercel Environment Variables:
 
 1. **`VITE_BACKEND_URL`**: Set this to your **Render URL** (e.g., `https://your-app.onrender.com`).

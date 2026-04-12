@@ -42,7 +42,7 @@ const envSchema = z
     SMTP_PASS: z.string().min(1).optional(),
     MAIL_FROM_NAME: z.string().default('Personalized Health Recommendation'),
     MAIL_FROM_ADDRESS: z.string().email().optional(),
-    APP_BASE_URL: envUrl.default('http://localhost:5173'),
+    APP_BASE_URL: envUrl.default('https://personal-health-reccomendation.vercel.app'),
 
     OTP_LENGTH: z.coerce.number().int().min(4).max(8).default(6),
     OTP_EXPIRY_MINUTES: z.coerce.number().int().min(1).max(30).default(10),
