@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { continueWithGoogle, getGoogleRedirectUser, signOutGoogleSession } from '../services/authService';
-import { AlertCircle, CheckCircle2, Loader2, LogOut, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, LogOut, ArrowLeft, LogIn } from 'lucide-react';
 
 export function MobileAuthBridge() {
   const [status, setStatus] = useState<'initial' | 'checking' | 'success' | 'error'>('initial');
@@ -12,67 +12,71 @@ export function MobileAuthBridge() {
   const handleLogout = async () => {
     try {
       await signOutGoogleSession();
-      window.location.href = window.location.pathname + '?flow=start';
+      window.location.reload();
     } catch (err) {
       window.location.reload();
     }
   };
 
-  useEffect(() => {
-    const handleLogin = async () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const flow = urlParams.get('flow');
-        
-        setStatus('checking');
-        
-        const user = await getGoogleRedirectUser();
-        
-        if (user) {
-          console.log('[Bridge] User found, leaping back to app...');
-          setStatus('success');
-          
-          const params = new URLSearchParams({
-            email: user.email,
-            displayName: user.displayName,
-            source: 'google'
-          });
+  const handleInitiateLogin = async () => {
+    try {
+      setError(null);
+      setStatus('checking');
+      console.log('[Bridge] Initiating login flow...');
+      await continueWithGoogle();
+    } catch (err) {
+      console.error('[Bridge] Initiation Error:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Failed to start Google Sign-in');
+    }
+  };
 
-          const finalUrl = `${APP_SCHEME}://auth-success?${params.toString()}`;
-          setRedirectUrl(finalUrl);
-          
-          setTimeout(() => {
-            window.location.href = finalUrl;
-            
-            setTimeout(() => {
-              setStatus('error');
-              setError('Could not open the app automatically. Please use the button below or go back to the app manually.');
-            }, 5000);
-          }, 1500);
-          
-          return;
-        }
+  const checkRedirectResult = useCallback(async () => {
+    try {
+      setStatus('checking');
+      const user = await getGoogleRedirectUser();
+      
+      if (user) {
+        console.log('[Bridge] Success! User captured:', user.email);
+        setStatus('success');
+        
+        const params = new URLSearchParams({
+          email: user.email,
+          displayName: user.displayName,
+          source: 'google'
+        });
 
-        if (flow === 'start') {
-          setStatus('initial');
-          await continueWithGoogle();
-          return;
-        }
-
+        const finalUrl = `${APP_SCHEME}://auth-success?${params.toString()}`;
+        setRedirectUrl(finalUrl);
+        
+        // Auto-redirect to app with delay
         setTimeout(() => {
-          setStatus('error');
-          setError('Sign-in session timed out. Please try again from the app.');
-        }, 10000);
-        
-      } catch (err) {
-        console.error('[Bridge] Error:', err);
-        setStatus('error');
-        setError(err instanceof Error ? err.message : 'Authentication failed');
+          window.location.href = finalUrl;
+          
+          // Show manual button if auto-redirect fails
+          setTimeout(() => {
+            if (window.location.href !== finalUrl) {
+              console.warn('[Bridge] Auto-jump might have failed.');
+            }
+          }, 5000);
+        }, 1500);
+      } else {
+        // No user found, showing manual start UI
+        console.log('[Bridge] No session found. Standing by for user action.');
+        setStatus('initial');
       }
-    };
-
-    void handleLogin();
+    } catch (err) {
+      console.error('[Bridge] Redirect Check Error:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Authentication failed during result capture');
+    }
   }, []);
+
+  useEffect(() => {
+    // We ONLY check if we came back from a redirect. 
+    // We NEVER auto-trigger the login here to avoid loops.
+    void checkRedirectResult();
+  }, [checkRedirectResult]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
@@ -82,27 +86,41 @@ export function MobileAuthBridge() {
             <CheckCircle2 className="w-10 h-10 text-[#4DB8AC]" />
           ) : status === 'error' ? (
             <AlertCircle className="w-10 h-10 text-red-500" />
-          ) : (
+          ) : status === 'checking' ? (
             <Loader2 className="w-10 h-10 text-[#4DB8AC] animate-spin" />
+          ) : (
+            <LogIn className="w-10 h-10 text-[#4DB8AC]" />
           )}
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4 px-4">
           {status === 'success' ? 'Authenticated!' : 
            status === 'error' ? 'Something went wrong' : 
-           'Logging you in...'}
+           status === 'checking' ? 'Please Wait' :
+           'Connect with Google'}
         </h1>
         
-        <p className="text-gray-600 mb-8 leading-relaxed">
-          {status === 'success' ? 'Redirecting you back to the app...' : 
+        <p className="text-gray-600 mb-8 leading-relaxed text-sm">
+          {status === 'success' ? 'Logging you in... Redirecting back to the app.' : 
            status === 'error' ? error : 
-           'Please complete the Google Sign-in in the specialized window.'}
+           status === 'checking' ? 'Processing your information...' :
+           "Tap the button below to connect your Health Account securely."}
         </p>
+
+        {status === 'initial' && (
+          <button 
+            onClick={handleInitiateLogin}
+            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-all shadow-lg shadow-[#4DB8AC]/20 active:scale-95"
+          >
+            <LogIn className="w-5 h-5" />
+            Sign in with Google
+          </button>
+        )}
 
         {status === 'success' && redirectUrl && (
           <a
             href={redirectUrl}
-            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-colors shadow-lg shadow-[#4DB8AC]/20 mb-4"
+            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-all shadow-lg shadow-[#4DB8AC]/20 active:scale-95 mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
             Return to App Now
@@ -128,8 +146,8 @@ export function MobileAuthBridge() {
         )}
         
         {status === 'success' && (
-          <div className="text-sm text-[#4DB8AC] font-medium animate-pulse">
-            App should open shortly...
+          <div className="text-sm text-[#4DB8AC] font-medium animate-pulse mt-2">
+            Opening your app...
           </div>
         )}
       </div>

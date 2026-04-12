@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -58,6 +58,8 @@ export function LoginScreen() {
     });
   };
 
+  const authInFlight = useRef(false);
+
   useEffect(() => {
     let isCancelled = false;
     let hasHandledGoogleUser = false;
@@ -69,6 +71,7 @@ export function LoginScreen() {
         return;
       }
       hasHandledGoogleUser = true;
+      authInFlight.current = false; // Release lock
 
       try {
         setIsGoogleLoading(true);
@@ -148,7 +151,10 @@ export function LoginScreen() {
     });
 
     return () => {
+      console.log('[AuthTrace] Cleaning up LoginScreen listeners...');
       isCancelled = true;
+      authInFlight.current = false;
+      void registration.then(r => r.remove());
       unsubscribe();
     };
   }, [navigate]);
@@ -182,16 +188,25 @@ export function LoginScreen() {
   };
 
   const handleGoogleContinue = async () => {
+    if (authInFlight.current) {
+      console.log('[AuthTrace] Auth already in flight. Ignoring click.');
+      return;
+    }
+
     setError('');
     try {
       setIsGoogleLoading(true);
+      authInFlight.current = true;
       const googleUser = await continueWithGoogle();
       if (googleUser) {
         await completeGoogleSignIn(googleUser);
         setIsGoogleLoading(false);
+        authInFlight.current = false;
         return;
       }
     } catch (err) {
+      console.error('[AuthTrace] handleGoogleContinue error:', err);
+      authInFlight.current = false;
       const message = err instanceof Error ? err.message : 'Google sign-in failed';
       setError(message);
     } finally {
