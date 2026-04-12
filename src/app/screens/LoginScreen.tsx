@@ -61,14 +61,17 @@ export function LoginScreen() {
     let hasHandledGoogleUser = false;
 
     const resolveGoogleUser = async (googleUser: GoogleUser) => {
+      console.log('[AuthTrace] resolveGoogleUser entry:', googleUser.email);
       if (isCancelled || hasHandledGoogleUser) return;
       hasHandledGoogleUser = true;
 
       try {
         setIsGoogleLoading(true);
         setError('');
+        console.log('[AuthTrace] Calling completeGoogleSignIn for:', googleUser.email);
         await completeGoogleSignIn(googleUser);
       } catch (err) {
+        console.error('[AuthTrace] resolveGoogleUser error:', err);
         const message = err instanceof Error ? err.message : 'Google sign-in failed';
         setError(message);
       } finally {
@@ -80,11 +83,17 @@ export function LoginScreen() {
 
     async function processGoogleRedirect() {
       try {
+        console.log('[AuthTrace] Checking for Google redirect result...');
         const googleUser = await getGoogleRedirectUser();
-        if (!googleUser) return;
+        if (!googleUser) {
+          console.log('[AuthTrace] No redirect user found.');
+          return;
+        }
 
+        console.log('[AuthTrace] Found redirect user:', googleUser.email);
         await resolveGoogleUser(googleUser);
       } catch (err) {
+        console.error('[AuthTrace] Redirect processing error:', err);
         const message = err instanceof Error ? err.message : 'Google sign-in failed';
         setError(message);
       }
@@ -93,6 +102,7 @@ export function LoginScreen() {
     void processGoogleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('[AuthTrace] onAuthStateChanged fired. User:', firebaseUser?.email || 'None');
       if (!firebaseUser?.email) return;
 
       void resolveGoogleUser({

@@ -39,19 +39,19 @@ function resolveBackendBaseUrl(rawValue: string | undefined): string {
   return (preferred?.value ?? parsedCandidates[0].value).replace(/\/+$/, '');
 }
 
-// Safety fallback for production: your specific Render URL.
-const PRODUCTION_BACKEND_URL = 'https://personalhealthreccomendation.onrender.com';
-
-const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl) || (isProduction ? PRODUCTION_BACKEND_URL : '');
-
 // Logic to prevent 404 loops in production if VITE_BACKEND_URL is missing.
 const isProduction = typeof window !== 'undefined' && 
   window.location.hostname !== 'localhost' && 
   window.location.hostname !== '127.0.0.1';
 
+// Safety fallback for production: your specific Render URL.
+const PRODUCTION_BACKEND_URL = 'https://personalhealthreccomendation.onrender.com';
+
+const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl) || (isProduction ? PRODUCTION_BACKEND_URL : '');
+
 if (isProduction && (!API_BASE_URL || API_BASE_URL.startsWith('/'))) {
   console.error(
-    'CRITICAL: VITE_BACKEND_URL is missing or invalid in production production environment. ' +
+    'CRITICAL: VITE_BACKEND_URL is missing or invalid in production environment. ' +
     'API calls will fail. Check your Vercel Environment Variables.'
   );
 }
