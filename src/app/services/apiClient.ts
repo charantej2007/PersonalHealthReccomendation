@@ -96,13 +96,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload && 'message' in payload
-      ? String((payload as { message: string }).message)
-      : 'Request failed';
+    let message = 'Request failed';
+    
+    if (typeof payload === 'object' && payload && 'message' in payload) {
+      message = String((payload as { message: string }).message);
+    } else if (typeof payload === 'string' && payload.length > 0) {
+      message = payload;
+    }
 
     const normalizedMessage =
       response.status >= 500
-        ? `${message} (Server error ${response.status}. Backend may be misconfigured.)`
+        ? `${message} (Server error ${response.status}. Please check your Render logs for the root cause.)`
         : message;
 
     throw new ApiClientError(normalizedMessage, response.status, payload);

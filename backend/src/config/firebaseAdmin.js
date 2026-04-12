@@ -48,10 +48,13 @@ if (env.FIREBASE_ADMIN_ENABLED) {
 
     adminDb = getFirestore(app);
     adminMessaging = getMessaging(app);
+    console.log('[FirebaseAdmin] Successfully initialized Firebase Admin SDK.');
   } catch (error) {
     startupError = error instanceof Error ? error : new Error('Unknown Firebase Admin startup error');
-    console.error('Firebase Admin initialization failed:', startupError.message);
+    console.error('[FirebaseAdmin] Initialization failed:', startupError.message);
   }
+} else {
+  console.warn('[FirebaseAdmin] Initialization skipped: check FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
 }
 
 export { adminDb, adminMessaging };
