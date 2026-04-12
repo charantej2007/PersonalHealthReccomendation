@@ -50,6 +50,7 @@ const envSchema = z
     OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().min(15).max(600).default(60),
     OTP_MAX_RESENDS_PER_HOUR: z.coerce.number().int().min(1).max(20).default(5),
     OTP_PURPOSES: z.string().default('signup,forgot-password'),
+    DEBUG_MODE: envBoolean.default(false),
   })
   .superRefine((values, ctx) => {
     const hasAnyMailConfig = Boolean(values.SMTP_USER || values.SMTP_PASS || values.MAIL_FROM_ADDRESS);
@@ -68,6 +69,22 @@ const envSchema = z
     }
   });
 
+// Robust function to clean Firebase Private Key from common deployment mangling.
+function cleanFirebaseKey(key) {
+  if (!key) return undefined;
+  let cleaned = key.trim();
+  
+  // Remove surrounding quotes if present
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  
+  // Replace escaped newlines with actual newlines
+  cleaned = cleaned.replace(/\\n/g, '\n');
+  
+  return cleaned;
+}
+
 const result = envSchema.safeParse(process.env);
 
 if (!result.success) {
@@ -85,9 +102,7 @@ const firebaseAdminEnabled = Boolean(
 
 export const env = {
   ...result.data,
-  FIREBASE_PRIVATE_KEY: result.data.FIREBASE_PRIVATE_KEY
-    ? result.data.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-    : undefined,
+  FIREBASE_PRIVATE_KEY: cleanFirebaseKey(result.data.FIREBASE_PRIVATE_KEY),
   MAIL_FROM_ADDRESS: mailFromAddress,
   FIREBASE_ADMIN_ENABLED: firebaseAdminEnabled,
   EMAIL_OTP_ENABLED: Boolean(result.data.SMTP_USER && result.data.SMTP_PASS),

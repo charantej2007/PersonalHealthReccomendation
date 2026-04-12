@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 import { ApiError } from '../utils/errors.js';
+import { env } from '../config/env.js';
 
 export function errorHandler(err, _req, res, _next) {
   if (err instanceof ZodError) {
@@ -17,7 +18,11 @@ export function errorHandler(err, _req, res, _next) {
   }
 
   console.error(err);
+  
+  const includeError = env.NODE_ENV !== 'production' || env.DEBUG_MODE;
+
   return res.status(500).json({
-    message: 'Internal server error',
+    message: includeError ? err.message : 'Internal server error',
+    details: includeError ? err.stack : undefined,
   });
 }
