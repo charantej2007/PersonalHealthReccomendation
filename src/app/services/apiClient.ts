@@ -30,7 +30,9 @@ function resolveBackendBaseUrl(rawValue: string | undefined): string {
   }
 
   const runningOnLocalhost =
-    typeof window !== 'undefined' && isLocalHost(window.location.hostname);
+    typeof window !== 'undefined' && 
+    isLocalHost(window.location.hostname) && 
+    !isCapacitor; // In Capacitor, window.location is localhost, but we usually want the remote backend.
 
   const preferred = runningOnLocalhost
     ? parsedCandidates.find((candidate) => isLocalHost(candidate.url.hostname))
@@ -39,10 +41,20 @@ function resolveBackendBaseUrl(rawValue: string | undefined): string {
   return (preferred?.value ?? parsedCandidates[0].value).replace(/\/+$/, '');
 }
 
+// Logic to detect if we are running inside a Capacitor native app wrapper.
+const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
+
+// Forced environment flag from .env files
+const isProductionEnv = import.meta.env.VITE_APP_ENV === 'production';
+
 // Logic to prevent 404 loops in production if VITE_BACKEND_URL is missing.
-const isProduction = typeof window !== 'undefined' && 
+// We consider it "production" if:
+// 1. It's a Capacitor app (Android/iOS always needs remote backend)
+// 2. The hostname is NOT localhost (Vercel deployment)
+// 3. The build was specifically marked as production
+const isProduction = isProductionEnv || isCapacitor || (typeof window !== 'undefined' && 
   window.location.hostname !== 'localhost' && 
-  window.location.hostname !== '127.0.0.1';
+  window.location.hostname !== '127.0.0.1');
 
 // Safety fallback for production: your specific Render URL.
 const PRODUCTION_BACKEND_URL = 'https://personalhealthreccomendation.onrender.com';
@@ -51,8 +63,7 @@ const API_BASE_URL = resolveBackendBaseUrl(configuredBaseUrl) || (isProduction ?
 
 if (isProduction && (!API_BASE_URL || API_BASE_URL.startsWith('/'))) {
   console.error(
-    'CRITICAL: VITE_BACKEND_URL is missing or invalid in production environment. ' +
-    'API calls will fail. Check your Vercel Environment Variables.'
+    'CRITICAL: API_BASE_URL is missing or invalid. Falling back to default Render link.'
   );
 }
 
@@ -85,9 +96,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   } catch (err) {
     const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    const message = isLocalhost
-      ? 'Could not reach the local backend. Make sure your server is running on port 8080.'
-      : `Could not reach the backend service at "${API_BASE_URL}". Please ensure VITE_BACKEND_URL is set correctly in your Vercel environment variables.`;
+    const message = isCapacitor
+      ? `Mobile app could not reach the backend at ${API_BASE_URL}. Please ensure your phone has internet access and the Render backend is live.`
+      : isLocalhost
+        ? 'Could not reach the local backend. Make sure your server is running on port 8080.'
+        : `Could not reach the backend service at "${API_BASE_URL}". Please ensure VITE_BACKEND_URL is set correctly in your Vercel environment variables.`;
     
     throw new ApiClientError(message, 0, err);
   }
