@@ -97,24 +97,33 @@ export function MobileAuthBridge() {
           {status === 'success' ? 'Authenticated!' : 
            status === 'error' ? 'Something went wrong' : 
            status === 'checking' ? 'Please Wait' :
-           'Connect with Google'}
+           'Health Connect'}
         </h1>
         
-        <p className="text-gray-600 mb-8 leading-relaxed text-sm">
+        <p className="text-gray-600 mb-8 leading-relaxed text-sm px-2">
           {status === 'success' ? 'Logging you in... Redirecting back to the app.' : 
            status === 'error' ? error : 
            status === 'checking' ? 'Processing your information...' :
-           "Tap the button below to connect your Health Account securely."}
+           "New user? Tap the button below to sign up or log in securely using your Google account."}
         </p>
 
         {status === 'initial' && (
-          <button 
-            onClick={handleInitiateLogin}
-            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-all shadow-lg shadow-[#4DB8AC]/20 active:scale-95"
-          >
-            <LogIn className="w-5 h-5" />
-            Sign in with Google
-          </button>
+          <div className="w-full space-y-3">
+            <button 
+              onClick={handleInitiateLogin}
+              className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-all shadow-lg shadow-[#4DB8AC]/20 active:scale-95"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign in with Google
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full py-4 bg-white text-gray-500 rounded-2xl font-semibold border-2 border-gray-100 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-95"
+            >
+              <LogOut className="w-5 h-5" />
+              Switch Account
+            </button>
+          </div>
         )}
 
         {status === 'success' && redirectUrl && (

@@ -8,6 +8,11 @@ import { buildRangeSeries, summarizeSeries, type AnalyticsRange } from '../servi
 import { useNavigate } from 'react-router';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
+// Check if running in Capacitor
+const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
 
 export function ReportsScreen() {
   const navigate = useNavigate();
@@ -108,8 +113,35 @@ export function ReportsScreen() {
       headStyles: { fillColor: [91, 155, 213] },
     });
 
-    const fileName = `${activeTab}-health-summary.pdf`;
-    doc.save(fileName);
+    const fileName = `${activeTab}-health-summary-${Date.now()}.pdf`;
+
+    if (isCapacitor) {
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      
+      const saveAndShare = async () => {
+        try {
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: pdfBase64,
+            directory: Directory.Documents,
+          });
+
+          await Share.share({
+            title: title,
+            text: 'Here is your health summary report.',
+            url: savedFile.uri,
+            dialogTitle: 'Share or Save Health Report',
+          });
+        } catch (err) {
+          console.error('Mobile PDF error:', err);
+          alert('Failed to save report to device.');
+        }
+      };
+
+      void saveAndShare();
+    } else {
+      doc.save(fileName);
+    }
   };
 
   return (
