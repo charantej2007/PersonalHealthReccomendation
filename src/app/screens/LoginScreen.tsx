@@ -64,7 +64,10 @@ export function LoginScreen() {
 
     const resolveGoogleUser = async (googleUser: GoogleUser) => {
       console.log('[AuthTrace] resolveGoogleUser entry:', googleUser.email);
-      if (isCancelled || hasHandledGoogleUser) return;
+      if (isCancelled || hasHandledGoogleUser) {
+        console.log('[AuthTrace] Already handled or cancelled. Ignoring resolve.');
+        return;
+      }
       hasHandledGoogleUser = true;
 
       try {
@@ -105,24 +108,29 @@ export function LoginScreen() {
     const registration = App.addListener('appUrlOpen', async (data) => {
       console.log('[AuthTrace] App opened via URL:', data.url);
       
-      const url = new URL(data.url);
-      if (url.host === 'auth-success') {
-        const email = url.searchParams.get('email');
-        const displayName = url.searchParams.get('displayName');
-        
-        if (email) {
-          console.log('[AuthTrace] Bridge success found in URL! Resolving for:', email);
+      try {
+        const url = new URL(data.url);
+        // data.url will look like personalhealth://auth-success?email=...
+        if (url.protocol === 'personalhealth:' || url.host === 'auth-success') {
+          const email = url.searchParams.get('email');
+          const displayName = url.searchParams.get('displayName');
           
-          // 1. Close the browser that was opened by the bridge
-          await Browser.close();
-          
-          // 2. Resolve the user in the app
-          await resolveGoogleUser({
-            email,
-            displayName: displayName ?? 'Google User',
-          });
-          return;
+          if (email) {
+            console.log('[AuthTrace] Bridge success found in URL! Resolving for:', email);
+            
+            // 1. Close the browser that was opened by the bridge
+            await Browser.close();
+            
+            // 2. Resolve the user in the app
+            await resolveGoogleUser({
+              email,
+              displayName: displayName ?? 'Google User',
+            });
+            return;
+          }
         }
+      } catch (e) {
+        console.warn('[AuthTrace] Failed to parse deep-link URL:', data.url);
       }
 
       // Fallback for standard Firebase recovery

@@ -1,53 +1,68 @@
 import { useEffect, useState } from 'react';
-import { continueWithGoogle, getGoogleRedirectUser } from '../services/authService';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { continueWithGoogle, getGoogleRedirectUser, signOutGoogleSession } from '../services/authService';
+import { AlertCircle, CheckCircle2, Loader2, LogOut, ArrowLeft } from 'lucide-react';
 
 export function MobileAuthBridge() {
   const [status, setStatus] = useState<'initial' | 'checking' | 'success' | 'error'>('initial');
   const [error, setError] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  const APP_SCHEME = 'com.personalized.health';
+  const APP_SCHEME = 'personalhealth';
+
+  const handleLogout = async () => {
+    try {
+      await signOutGoogleSession();
+      window.location.href = window.location.pathname + '?flow=start';
+    } catch (err) {
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     const handleLogin = async () => {
       try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const flow = urlParams.get('flow');
+        
         setStatus('checking');
         
-        // 1. Check if we already have a redirect result (the "return" from Google)
         const user = await getGoogleRedirectUser();
         
         if (user) {
           console.log('[Bridge] User found, leaping back to app...');
           setStatus('success');
           
-          // Encode data to pass back to app
           const params = new URLSearchParams({
             email: user.email,
             displayName: user.displayName,
             source: 'google'
           });
 
-          // THE MAGIC LEAP: Redirect to the native app scheme
-          const redirectUrl = `${APP_SCHEME}://auth-success?${params.toString()}`;
+          const finalUrl = `${APP_SCHEME}://auth-success?${params.toString()}`;
+          setRedirectUrl(finalUrl);
           
-          // Small delay to show success UI before jumping
           setTimeout(() => {
-            window.location.href = redirectUrl;
+            window.location.href = finalUrl;
             
-            // Fallback: If the jump fails (app not installed/wrong scheme), 
-            // tell the user to go back manually.
             setTimeout(() => {
               setStatus('error');
-              setError('Could not open the app automatically. Please go back to the app manually.');
-            }, 3000);
+              setError('Could not open the app automatically. Please use the button below or go back to the app manually.');
+            }, 5000);
           }, 1500);
           
           return;
         }
 
-        // 2. If no user, trigger the Google flow
-        setStatus('initial');
-        await continueWithGoogle();
+        if (flow === 'start') {
+          setStatus('initial');
+          await continueWithGoogle();
+          return;
+        }
+
+        setTimeout(() => {
+          setStatus('error');
+          setError('Sign-in session timed out. Please try again from the app.');
+        }, 10000);
         
       } catch (err) {
         console.error('[Bridge] Error:', err);
@@ -84,13 +99,32 @@ export function MobileAuthBridge() {
            'Please complete the Google Sign-in in the specialized window.'}
         </p>
 
-        {status === 'error' && (
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold hover:bg-[#45A599] transition-colors shadow-lg shadow-[#4DB8AC]/20"
+        {status === 'success' && redirectUrl && (
+          <a
+            href={redirectUrl}
+            className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#45A599] transition-colors shadow-lg shadow-[#4DB8AC]/20 mb-4"
           >
-            Try Again
-          </button>
+            <ArrowLeft className="w-5 h-5" />
+            Return to App Now
+          </a>
+        )}
+
+        {status === 'error' && (
+          <div className="space-y-3 w-full">
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full py-4 bg-[#4DB8AC] text-white rounded-2xl font-semibold hover:bg-[#45A599] transition-colors"
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              Sign out and change account
+            </button>
+          </div>
         )}
         
         {status === 'success' && (

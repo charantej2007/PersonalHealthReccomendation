@@ -49,12 +49,21 @@ function toGoogleAuthErrorMessage(error: unknown): string {
   }
 }
 
+let lastOpenTime = 0;
+
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
     if (isCapacitor) {
+      const now = Date.now();
+      if (now - lastOpenTime < 2000) {
+        console.warn('[AuthService] Throttling Browser.open to prevent multiple tabs.');
+        return null; // Ignore rapid clicks
+      }
+      lastOpenTime = now;
+
       console.log('[AuthService] Mobile detected. Opening Vercel Auth Bridge...');
-      // IMPORTANT: Use the deployed Vercel URL, not localhost
-      const productionUrl = 'https://personal-health-reccomendation.vercel.app/auth/mobile-bridge';
+      // IMPORTANT: Append ?flow=start to tell the bridge to begin the login
+      const productionUrl = 'https://personal-health-reccomendation.vercel.app/auth/mobile-bridge?flow=start';
       await Browser.open({ url: productionUrl });
       return null;
     }
