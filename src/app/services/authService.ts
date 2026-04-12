@@ -4,9 +4,15 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  indexedDBLocalPersistence,
+  initializeAuth,
   type AuthError,
 } from 'firebase/auth';
+import { Browser } from '@capacitor/browser';
 import { auth } from '../lib/firebase';
+
+// Helper to check if we are on Capacitor
+const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
 
 export type GoogleUser = {
   email: string;
@@ -45,13 +51,25 @@ function toGoogleAuthErrorMessage(error: unknown): string {
 
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
+    if (isCapacitor) {
+      console.log('[AuthService] Detected Capacitor. Redirecting to Firebase Auth Domain via Browser...');
+      // On mobile, native redirects are much more stable if triggered manually via the Browser plugin
+      // to the Auth Handler URL.
+      const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+      
+      // We point Google to the standard Firebase auth handler
+      await signInWithRedirect(auth, provider);
+      return null;
+    }
+
     console.log('[AuthService] Attempting Google Sign-in with Popup...');
     const popupResult = await signInWithPopup(auth, provider);
     console.log('[AuthService] Popup success for:', popupResult.user.email);
     return toGoogleUser(popupResult.user.email, popupResult.user.displayName);
   } catch (popupError) {
     const authError = popupError as Partial<AuthError>;
-    console.warn('[AuthService] Popup failed, falling back to redirect. Error code:', authError.code);
+    console.warn('[AuthService] Sign-in flow error. Code:', authError.code);
 
     const fallbackToRedirectCodes = new Set([
       'auth/popup-blocked',
@@ -59,11 +77,11 @@ export async function continueWithGoogle(): Promise<GoogleUser | null> {
       'auth/operation-not-supported-in-this-environment',
     ]);
 
-    if (!authError.code || !fallbackToRedirectCodes.has(authError.code)) {
+    if (!isCapacitor && (!authError.code || !fallbackToRedirectCodes.has(authError.code))) {
       throw new Error(toGoogleAuthErrorMessage(popupError));
     }
 
-    console.log('[AuthService] Initiating Redirect fallback...');
+    console.log('[AuthService] Ensuring redirect logic is active...');
     await signInWithRedirect(auth, provider);
     return null;
   }

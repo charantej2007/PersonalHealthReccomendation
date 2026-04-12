@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { App } from '@capacitor/app';
 import { BackButton } from '../components/BackButton';
 import { auth } from '../lib/firebase';
 import { findUserByEmail } from '../services/backendService';
@@ -81,25 +82,31 @@ export function LoginScreen() {
       }
     };
 
-    async function processGoogleRedirect() {
+    const checkRedirect = async () => {
       try {
         console.log('[AuthTrace] Checking for Google redirect result...');
-        const googleUser = await getGoogleRedirectUser();
-        if (!googleUser) {
+        const user = await getGoogleRedirectUser();
+        if (user) {
+          console.log('[AuthTrace] Redirect user found:', user.email);
+          await resolveGoogleUser(user);
+        } else {
           console.log('[AuthTrace] No redirect user found.');
-          return;
         }
-
-        console.log('[AuthTrace] Found redirect user:', googleUser.email);
-        await resolveGoogleUser(googleUser);
       } catch (err) {
-        console.error('[AuthTrace] Redirect processing error:', err);
-        const message = err instanceof Error ? err.message : 'Google sign-in failed';
-        setError(message);
+        console.error('[AuthTrace] Redirect check failed:', err);
       }
-    }
+    };
 
-    void processGoogleRedirect();
+    // Standard redirect check on mount
+    void checkRedirect();
+
+    // Native Capacitor listener for deep links
+    const registration = App.addListener('appUrlOpen', (data) => {
+      console.log('[AuthTrace] App opened via URL:', data.url);
+      // When returing from Google, Firebase Auth will eventually update.
+      // We trigger a re-check of the redirect result.
+      setTimeout(() => void checkRedirect(), 1000);
+    });
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       console.log('[AuthTrace] onAuthStateChanged fired. User:', firebaseUser?.email || 'None');
