@@ -108,7 +108,16 @@ Frontend integration files:
 
 ## Vercel Deployment Notes
 
-This repository now serves backend routes from Vercel serverless functions via `api/[...path].js`.
+This repository now serves backend routes from Vercel serverless functions via `api/[...path].js`. However, if you are using a separate backend (like **Render**), you **MUST** configure the frontend to talk to it.
+
+### Required Vercel Environment Variables:
+
+1. **`VITE_BACKEND_URL`**: Set this to your **Render URL** (e.g., `https://your-app.onrender.com`).
+   - *Note: Leave unset ONLY if you are using the Vercel internal API functions.*
+2. **`FIREBASE_PROJECT_ID`**, **`FIREBASE_CLIENT_EMAIL`**, **`FIREBASE_PRIVATE_KEY`**: Required for both Vercel and Render backends.
+3. **`SMTP_USER`**, **`SMTP_PASS`**: Required for OTP email delivery.
+
+### Important: After changing environment variables in Vercel, you must manually **REDEPLOY** for the changes to take effect.
 
 Required Vercel environment variables for backend auth flows:
 - `FIREBASE_PROJECT_ID`

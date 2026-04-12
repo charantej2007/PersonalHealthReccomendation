@@ -110,3 +110,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload as T;
 }
+
+export async function checkBackendReachability(): Promise<{ ok: boolean; url: string; error?: string }> {
+  const url = `${API_BASE_URL}/api/health`;
+  try {
+    const response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
+    return { ok: response.ok, url };
+  } catch (err) {
+    return { 
+      ok: false, 
+      url, 
+      error: err instanceof Error ? err.message : 'Unknown error' 
+    };
+  }
+}

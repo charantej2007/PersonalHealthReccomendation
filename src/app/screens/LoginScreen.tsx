@@ -8,6 +8,7 @@ import { findUserByEmail } from '../services/backendService';
 import { setCurrentUserId } from '../services/sessionService';
 import { continueWithGoogle, getGoogleRedirectUser, type GoogleUser } from '../services/authService';
 import { GoogleButton } from '../components/GoogleButton';
+import { checkBackendReachability } from '../services/apiClient';
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -19,6 +20,21 @@ export function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [backendUrl, setBackendUrl] = useState('');
+
+  useEffect(() => {
+    async function checkStatus() {
+      const result = await checkBackendReachability();
+      setBackendStatus(result.ok ? 'online' : 'offline');
+      setBackendUrl(result.url);
+    }
+    void checkStatus();
+    const interval = setInterval(() => {
+      void checkStatus();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const state = location.state as { passwordResetSuccess?: boolean; redirectedFromSignup?: boolean } | null;
@@ -166,6 +182,17 @@ export function LoginScreen() {
         </div>
         <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back</h1>
         <p className="text-white/80">Sign in to your health account</p>
+
+        <div className="absolute -bottom-4 right-8 flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+          <div className={`w-2 h-2 rounded-full ${
+            backendStatus === 'online' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 
+            backendStatus === 'offline' ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]' : 
+            'bg-yellow-400 animate-pulse'
+          }`}></div>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+            Backend {backendStatus}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 px-8 -mt-16 pb-6">
