@@ -20,20 +20,13 @@ export function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
-  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
-  const [backendUrl, setBackendUrl] = useState('');
 
   useEffect(() => {
     async function checkStatus() {
       const result = await checkBackendReachability();
-      setBackendStatus(result.ok ? 'online' : 'offline');
-      setBackendUrl(result.url);
+      console.log(`[Diagnostic] Backend check: ${result.ok ? 'SUCCESS' : 'FAILED'} at ${result.url}.`);
     }
     void checkStatus();
-    const interval = setInterval(() => {
-      void checkStatus();
-    }, 10000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -160,19 +153,6 @@ export function LoginScreen() {
     }
   };
 
-  const checkBackend = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/health`);
-      if (response.ok) {
-        alert('Backend is reachable! URL: ' + (import.meta.env.VITE_BACKEND_URL || 'relative /api'));
-      } else {
-        alert('Backend returned error ' + response.status + ' at URL: ' + (import.meta.env.VITE_BACKEND_URL || 'relative /api'));
-      }
-    } catch (err) {
-      alert('Backend UNREACHABLE. Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
-    }
-  };
-
   return (
     <div className="h-full bg-white flex flex-col overflow-y-auto">
       <div className="bg-[#4DB8AC] px-8 pt-14 pb-24 rounded-b-[40px] relative">
@@ -182,17 +162,6 @@ export function LoginScreen() {
         </div>
         <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back</h1>
         <p className="text-white/80">Sign in to your health account</p>
-
-        <div className="absolute -bottom-4 right-8 flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-          <div className={`w-2 h-2 rounded-full ${
-            backendStatus === 'online' ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 
-            backendStatus === 'offline' ? 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]' : 
-            'bg-yellow-400 animate-pulse'
-          }`}></div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-            Backend {backendStatus}
-          </span>
-        </div>
       </div>
 
       <div className="flex-1 px-8 -mt-16 pb-6">
@@ -271,15 +240,6 @@ export function LoginScreen() {
         >
           Create Account
         </button>
-
-        <div className="mt-8 pt-8 border-t border-gray-100">
-          <button
-            onClick={checkBackend}
-            className="text-xs text-gray-400 hover:text-gray-600 underline"
-          >
-            Check Backend Connection (Debug)
-          </button>
-        </div>
       </div>
     </div>
   );
