@@ -95,3 +95,18 @@ export async function sendOtpEmail({ email, otp, expiryMinutes, purpose = 'signu
     }
   }
 }
+
+// Startup diagnostic: Test SMTP connection to catch wrong passwords immediately.
+if (env.EMAIL_OTP_ENABLED) {
+  setTimeout(async () => {
+    try {
+      console.log('[EmailService] Verifying SMTP connection on startup...');
+      const transport = getPrimaryTransport();
+      await transport.verify();
+      console.log('[EmailService] SMTP Connection Test: SUCCESS - Your email settings are correct.');
+    } catch (err) {
+      console.error('[EmailService] SMTP Connection Test: FAILED. Check your SMTP_USER and SMTP_PASS (App Password).');
+      console.error(`[EmailService] Reason: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, 5000); // Wait 5 seconds to not interfere with main startup logs
+}

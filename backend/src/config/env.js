@@ -81,6 +81,29 @@ function cleanFirebaseKey(key) {
   
   // Replace escaped newlines with actual newlines
   cleaned = cleaned.replace(/\\n/g, '\n');
+
+  // Handle keys pasted as a single line (missing actual newlines)
+  if (cleaned.includes('-----BEGIN PRIVATE KEY-----') && !cleaned.includes('\n')) {
+    cleaned = cleaned
+      .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+      .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+    
+    // Attempt to break up the long base64 string every 64 characters if it's still missing newlines in the middle
+    const header = '-----BEGIN PRIVATE KEY-----\n';
+    const footer = '\n-----END PRIVATE KEY-----';
+    if (cleaned.startsWith(header) && cleaned.endsWith(footer)) {
+       const body = cleaned.substring(header.length, cleaned.length - footer.length).replace(/\s+/g, '');
+       const lines = body.match(/.{1,64}/g) || [];
+       cleaned = header + lines.join('\n') + footer;
+    }
+  }
+
+  // Print a fingerprint to logs for verification (DO NOT LOG THE WHOLE KEY)
+  const escaped = cleaned.replace(/\n/g, '\\n');
+  const fingerprint = escaped.length > 50 
+    ? `${escaped.substring(0, 30)}...${escaped.substring(escaped.length - 20)}` 
+    : escaped;
+  console.log(`[EnvConfig] Firebase Private Key Fingerprint (len=${cleaned.length}): ${fingerprint}`);
   
   return cleaned;
 }

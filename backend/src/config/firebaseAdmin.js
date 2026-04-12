@@ -17,10 +17,14 @@ function unavailableProxy() {
 
   return new Proxy(
     function unavailableService() {
+      const msg = `Firebase Admin is unavailable. Root cause: ${startupError?.message || 'Config missing'}`;
+      console.error(`[FirebaseAdmin] CRITICAL: ${msg}`);
       throwUnavailable();
     },
     {
-      get() {
+      get(_, prop) {
+        if (prop === 'then') return undefined; // Handle async/promise checks gracefully
+        console.error(`[FirebaseAdmin] Access to property "${String(prop)}" failed because SDK is not initialized.`);
         throwUnavailable();
       },
       apply() {
@@ -51,7 +55,8 @@ if (env.FIREBASE_ADMIN_ENABLED) {
     console.log('[FirebaseAdmin] Successfully initialized Firebase Admin SDK.');
   } catch (error) {
     startupError = error instanceof Error ? error : new Error('Unknown Firebase Admin startup error');
-    console.error('[FirebaseAdmin] Initialization failed:', startupError.message);
+    console.error(`[FirebaseAdmin] Initialization CRITICAL FAILURE: ${startupError.message}`);
+    if (startupError.stack) console.debug(startupError.stack);
   }
 } else {
   console.warn('[FirebaseAdmin] Initialization skipped: check FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
