@@ -52,14 +52,10 @@ function toGoogleAuthErrorMessage(error: unknown): string {
 export async function continueWithGoogle(): Promise<GoogleUser | null> {
   try {
     if (isCapacitor) {
-      console.log('[AuthService] Detected Capacitor. Redirecting to Firebase Auth Domain via Browser...');
-      // On mobile, native redirects are much more stable if triggered manually via the Browser plugin
-      // to the Auth Handler URL.
-      const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
-      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-      
-      // We point Google to the standard Firebase auth handler
-      await signInWithRedirect(auth, provider);
+      console.log('[AuthService] Mobile detected. Opening Vercel Auth Bridge...');
+      // IMPORTANT: Use the deployed Vercel URL, not localhost
+      const productionUrl = 'https://personal-health-reccomendation.vercel.app/auth/mobile-bridge';
+      await Browser.open({ url: productionUrl });
       return null;
     }
 

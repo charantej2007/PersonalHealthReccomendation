@@ -10,11 +10,16 @@ import { TrackingScreen } from "./screens/TrackingScreen";
 import { ReminderScreen } from "./screens/ReminderScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
+import { MobileAuthBridge } from "./screens/MobileAuthBridge";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: SplashScreen,
+  },
+  {
+    path: "/auth/mobile-bridge",
+    Component: MobileAuthBridge,
   },
   {
     path: "/login",

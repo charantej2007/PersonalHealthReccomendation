@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { BackButton } from '../components/BackButton';
 import { auth } from '../lib/firebase';
 import { findUserByEmail } from '../services/backendService';
@@ -101,11 +102,31 @@ export function LoginScreen() {
     void checkRedirect();
 
     // Native Capacitor listener for deep links
-    const registration = App.addListener('appUrlOpen', (data) => {
+    const registration = App.addListener('appUrlOpen', async (data) => {
       console.log('[AuthTrace] App opened via URL:', data.url);
-      // When returing from Google, Firebase Auth will eventually update.
-      // We trigger a re-check of the redirect result.
-      setTimeout(() => void checkRedirect(), 1000);
+      
+      const url = new URL(data.url);
+      if (url.host === 'auth-success') {
+        const email = url.searchParams.get('email');
+        const displayName = url.searchParams.get('displayName');
+        
+        if (email) {
+          console.log('[AuthTrace] Bridge success found in URL! Resolving for:', email);
+          
+          // 1. Close the browser that was opened by the bridge
+          await Browser.close();
+          
+          // 2. Resolve the user in the app
+          await resolveGoogleUser({
+            email,
+            displayName: displayName ?? 'Google User',
+          });
+          return;
+        }
+      }
+
+      // Fallback for standard Firebase recovery
+      setTimeout(() => void checkRedirect(), 1500);
     });
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
